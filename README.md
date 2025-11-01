@@ -12,18 +12,19 @@
 
 ## 当前进度
 
-- ✅ Next.js 16 + TypeScript + Tailwind UI 框架搭建
-- ✅ 规划、行程、费用、设置等页面骨架完成
-- ✅ Supabase 客户端封装、React Query 全局状态配置
-- ✅ 语音输入组件与行程申请表单原型
-- ✅ API Route 占位（行程生成 / 语音识别 / 费用管理）
-- ⏳ 即将接入：通义千问行程生成、阿里云语音识别、高德地图可视化、Supabase Auth
+- ✅ Next.js 16 + TypeScript + Tailwind UI 框架与导航骨架
+- ✅ 行程规划工作台（表单校验、React Query 状态、语音录入）
+- ✅ `/api/plan` 接入 DashScope 调用骨架（无 Key 时自动降级示例行程）
+- ✅ `/api/plan/intent` 语音文本解析 → 行程表单自动填充（DashScope / 规则双方案）
+- ✅ `/api/speech` 语音识别通道（占位返回，提示补充阿里云密钥）
+- ✅ 行程预览：预算占比图 + 高德地图地图组件（缺少坐标/Key 时提示）
+- ⏳ 下一步：语音落地表单解析、Supabase Auth / DB 接入、费用模块联动
 
 ## 技术栈
 
 - **前端**：Next.js 16（App Router）、React 19、TypeScript、Tailwind CSS 4
 - **状态管理**：React Query、React Hook Form、Zod
-- **音频与地图**：MediaRecorder API、阿里云智能语音交互（计划）、高德地图 JS SDK（计划）
+- **音频与地图**：MediaRecorder API、阿里云智能语音交互（待接入）、高德地图 JS SDK
 - **后端服务**：Supabase（Auth + Database + Storage）、Next.js Route Handlers
 - **AI 能力计划**：阿里云百炼 DashScope（通义千问）、语音识别 API
 
@@ -66,13 +67,32 @@ SUPABASE_SERVICE_ROLE_KEY=""
 SUPABASE_JWT_SECRET=""
 
 DASH_SCOPE_API_KEY=""
+DASH_SCOPE_MODEL=""
 ALIBABA_SPEECH_APP_ID=""
 ALIBABA_SPEECH_ACCESS_KEY_ID=""
 ALIBABA_SPEECH_ACCESS_KEY_SECRET=""
 AMAP_WEB_KEY=""
+NEXT_PUBLIC_AMAP_WEB_KEY=""
 ```
 
+> `DASH_SCOPE_MODEL` 默认为 `qwen-plus`，如只开通试用可改为 `qwen-turbo`；`AMAP_WEB_KEY` 用于服务端调用，`NEXT_PUBLIC_AMAP_WEB_KEY` 在前端地图 SDK 中使用。若暂未申请，可留空，界面会显示友好的提示。
+
 后续将在前端设置页面提供 Key 输入界面，同时通过 Supabase 安全存储，避免硬编码在仓库中。
+
+## 智能行程规划流程
+
+1. **语音/文字录入**：使用顶部语音按钮或手动输入需求；语音结果会展示在侧边卡片。
+2. **语义解析**：点击“解析并填充表单”，调用 `/api/plan/intent`。
+   - 配置 `DASH_SCOPE_API_KEY` 时，由通义千问输出结构化行程意图；
+   - 未配置时，启用规则解析，自动推测目的地/天数/预算/同行人群/偏好。
+3. **确认参数**：表单可二次编辑修正日期、预算、主题等信息。
+4. **生成行程**：提交后触发 `/api/plan`，
+   - 配置 DashScope 时，直接返回模型生成的行程与预算；
+   - 未配置时，提供示例行程，仍能驱动 UI 流程（预算图表 + 地图提示）。
+5. **结果展示**：
+   - 行程亮点、每日安排、预算分配饼图；
+   - 地图组件根据坐标展示 POI（无坐标/Key 时友好提示）；
+   - 标记数据来源（通义千问或占位）。
 
 ## 目录结构
 

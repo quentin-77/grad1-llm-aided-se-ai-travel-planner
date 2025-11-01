@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -67,6 +67,22 @@ export function TripIntentForm({
       ...defaultValues,
     },
   });
+
+  const latestDefaultsRef = useRef<Partial<TripIntentFormValues> | undefined>(defaultValues);
+
+  useEffect(() => {
+    if (!defaultValues) return;
+    const prev = latestDefaultsRef.current;
+    const prevSerialized = prev ? JSON.stringify(prev) : null;
+    const nextSerialized = JSON.stringify(defaultValues);
+    if (prevSerialized !== nextSerialized) {
+      form.reset({
+        ...form.getValues(),
+        ...defaultValues,
+      });
+      latestDefaultsRef.current = defaultValues;
+    }
+  }, [defaultValues, form]);
 
   const currentlySelectedThemes = useWatch({
     control: form.control,

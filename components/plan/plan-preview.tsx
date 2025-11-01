@@ -1,6 +1,10 @@
+'use client';
+
 import type { TripPlan } from "@/lib/types/plan";
-import { CalendarDays, MapPin, PiggyBank } from "lucide-react";
+import { CalendarDays, MapPin, PiggyBank, MapPinned } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { BudgetSummary } from "@/components/plan/budget-summary";
+import { MapView } from "@/components/plan/map-view";
 
 interface PlanPreviewProps {
   plan?: TripPlan;
@@ -17,7 +21,7 @@ export function PlanPreview({ plan }: PlanPreviewProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex flex-wrap items-center gap-4">
           <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
@@ -30,17 +34,40 @@ export function PlanPreview({ plan }: PlanPreviewProps) {
             </span>
             <span className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />
-              {plan.itinerary.length} 个核心地点
+              {plan.itinerary.length} 天行程安排
             </span>
             <span className="flex items-center gap-2">
               <PiggyBank className="h-4 w-4" />
-              预算 {plan.budget.total} {plan.budget.currency}
+              预算 {plan.budget.total.toLocaleString()} {plan.budget.currency}
             </span>
           </div>
         </div>
-        <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">
-          {plan.highlights.join(" / ")}
-        </p>
+        {plan.highlights.length ? (
+          <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">
+            {plan.highlights.join(" / ")}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="space-y-4">
+          <header className="flex items-center gap-2 text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+            <PiggyBank className="h-4 w-4" />
+            预算分配
+          </header>
+          <BudgetSummary budget={plan.budget} />
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            预算数据来自 AI 估算，可在费用页面按实际开销动态调整。
+          </p>
+        </Card>
+
+        <Card className="space-y-4">
+          <header className="flex items-center gap-2 text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+            <MapPinned className="h-4 w-4" />
+            地图预览
+          </header>
+          <MapView plan={plan} />
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -55,17 +82,22 @@ export function PlanPreview({ plan }: PlanPreviewProps) {
               </h4>
             </header>
             <ul className="space-y-2 text-sm text-neutral-600 dark:text-neutral-300">
-              {day.items.slice(0, 3).map((item) => (
-                <li key={item.title}>
+              {day.items.slice(0, 4).map((item) => (
+                <li key={`${day.date}-${item.title}`}>
                   <span className="font-medium">{item.title}</span>
                   {item.location?.name ? (
                     <span className="ml-1 text-neutral-500">
                       · {item.location.name}
                     </span>
                   ) : null}
+                  {item.startTime && item.endTime ? (
+                    <span className="ml-1 text-xs text-neutral-400">
+                      {item.startTime} - {item.endTime}
+                    </span>
+                  ) : null}
                 </li>
               ))}
-              {day.items.length > 3 ? (
+              {day.items.length > 4 ? (
                 <li className="text-xs text-neutral-400">…还有更多精彩安排</li>
               ) : null}
             </ul>

@@ -7,22 +7,28 @@ interface VoiceInputProps {
   isProcessing?: boolean;
   onTranscript?: (text: string) => void;
   onAudioData?: (blob: Blob) => void;
+  transcript?: string;
 }
 
 export function VoiceInput({
   isProcessing = false,
   onAudioData,
   onTranscript,
+  transcript: externalTranscript,
 }: VoiceInputProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [transcript, setTranscript] = useState<string>("");
+  const [internalTranscript, setInternalTranscript] = useState<string>("");
   const [recordingSeconds, setRecordingSeconds] = useState(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<BlobPart[]>([]);
   const timerRef = useRef<number | null>(null);
+
+  const displayTranscript = externalTranscript && externalTranscript.length > 0
+    ? externalTranscript
+    : internalTranscript;
 
   const resetState = useCallback(() => {
     if (timerRef.current) {
@@ -72,7 +78,7 @@ export function VoiceInput({
           onAudioData(audioBlob);
         }
 
-        setTranscript("语音已录入，等待识别…");
+        setInternalTranscript("语音已录入，等待识别…");
         onTranscript?.("语音已录入，等待识别…");
         resetState();
       });
@@ -135,7 +141,7 @@ export function VoiceInput({
           </p>
         ) : (
           <p className="text-neutral-500">
-            {transcript || "点击麦克风开始录音，自动识别后将填充表单。"}
+            {displayTranscript || "点击麦克风开始录音，自动识别后将填充表单。"}
           </p>
         )}
       </div>
