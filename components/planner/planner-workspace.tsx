@@ -8,6 +8,7 @@ import { VoiceInput } from "@/components/speech/voice-input";
 import type { TripIntentFormValues } from "@/components/forms/trip-intent-form";
 import type { TripIntentPayload } from "@/lib/types/plan";
 import type { TripPlanResponse, TripIntentParseResponse } from "@/lib/types/api";
+import { convertBlobTo16kMonoWav } from "@/lib/utils/audio";
 
 export function PlannerWorkspace() {
   const [voiceTranscript, setVoiceTranscript] = useState<string | null>(null);
@@ -96,16 +97,36 @@ export function PlannerWorkspace() {
     }
   };
 
+  const planData = planMutation.data?.plan;
+
   const handleAudioData = async (blob: Blob) => {
     setIsSpeechProcessing(true);
     try {
+      let payloadBlob = blob;
+      let contentType = blob.type || "";
+
+      if (!isSupportedPcmOrWav(contentType)) {
+        try {
+          payloadBlob = await convertBlobTo16kMonoWav(blob);
+          contentType = "audio/wav";
+        } catch (conversionError) {
+          console.error("[PlannerWorkspace] 音频转换失败", conversionError);
+          setVoiceTranscript("录音格式转换失败，请更换浏览器或允许麦克风后重试。");
+          return;
+        }
+      }
+
+      if (!contentType) {
+        contentType = payloadBlob.type || "audio/wav";
+      }
+
       const response = await fetch("/api/speech", {
         method: "POST",
         headers: {
-          "Content-Type": blob.type,
+          "Content-Type": contentType,
           "x-speech-language": "zh-CN",
         },
-        body: blob,
+        body: payloadBlob,
       });
 
       if (!response.ok) {
@@ -126,7 +147,10 @@ export function PlannerWorkspace() {
     }
   };
 
-  const planData = planMutation.data?.plan;
+  function isSupportedPcmOrWav(mime: string) {
+    const normalized = mime.toLowerCase();
+    return normalized.includes("wav") || normalized.includes("pcm");
+  }
 
   const insights = useMemo(() => {
     if (!planData) return [];
@@ -148,6 +172,7 @@ export function PlannerWorkspace() {
             setIntentMessage(null);
             setIntentProvider(undefined);
           }}
+          onListeningChange={(active) => setIsSpeechProcessing(active)}
           onAudioData={handleAudioData}
         />
         <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">

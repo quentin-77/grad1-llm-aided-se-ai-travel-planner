@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { transcribeSpeech } from "@/lib/api/speech/transcribe";
 
+// 暴露给组件的接口
 export async function POST(request: Request) {
   try {
     const contentType = request.headers.get("content-type");

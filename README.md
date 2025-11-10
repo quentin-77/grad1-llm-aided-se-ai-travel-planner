@@ -68,14 +68,17 @@ SUPABASE_JWT_SECRET=""
 
 DASH_SCOPE_API_KEY=""
 DASH_SCOPE_MODEL=""
+DASH_SCOPE_TIMEOUT_MS=""
 ALIBABA_SPEECH_APP_ID=""
+ALIBABA_SPEECH_ACCESS_TOKEN=""
 ALIBABA_SPEECH_ACCESS_KEY_ID=""
 ALIBABA_SPEECH_ACCESS_KEY_SECRET=""
+ALIBABA_SPEECH_REGION="cn-shanghai"
 AMAP_WEB_KEY=""
 NEXT_PUBLIC_AMAP_WEB_KEY=""
 ```
 
-> `DASH_SCOPE_MODEL` 默认为 `qwen-plus`，如只开通试用可改为 `qwen-turbo`；`AMAP_WEB_KEY` 用于服务端调用，`NEXT_PUBLIC_AMAP_WEB_KEY` 在前端地图 SDK 中使用。若暂未申请，可留空，界面会显示友好的提示。
+> `DASH_SCOPE_MODEL` 默认为 `qwen-turbo`（推荐，更快且成本更低）；如具备高规格权限可切换到 `qwen-plus`。`DASH_SCOPE_TIMEOUT_MS` 可自定义调用超时（毫秒），默认 60 秒。语音识别目前支持阿里云或浏览器内置 Web Speech API：配置 `ALIBABA_*` 变量即可启用阿里云后端识别；未配置时，前端可尝试 Web Speech（受浏览器/网络限制），否则降级为占位 mock。`ALIBABA_SPEECH_REGION` 需与你开通的地域一致。`AMAP_WEB_KEY` 用于服务端调用，`NEXT_PUBLIC_AMAP_WEB_KEY` 在前端地图 SDK 中使用。若暂未申请，可留空，界面会显示友好的提示。
 
 后续将在前端设置页面提供 Key 输入界面，同时通过 Supabase 安全存储，避免硬编码在仓库中。
 
@@ -94,13 +97,15 @@ NEXT_PUBLIC_AMAP_WEB_KEY=""
    - 地图组件根据坐标展示 POI（无坐标/Key 时友好提示）；
    - 标记数据来源（通义千问或占位）。
 
+> 语音识别注意：阿里云实时听写仅支持 16kHz / 16bit / 单声道 的 WAV 或 PCM 音频。建议在前端使用 Web Audio API 将 `MediaRecorder` 录制的 `audio/webm` 转换为 WAV 后再上传，否则接口会报 `NO_VALID_AUDIO_ERROR`。
+
 ## 目录结构
 
 ```
 ai-travel-planner
 ├── app
 │   ├── (routes)
-│   │   ├── expenses
+│   │   ├── expenses 
 │   │   ├── plan
 │   │   ├── planner
 │   │   └── settings
@@ -108,8 +113,9 @@ ai-travel-planner
 │   │   ├── expenses
 │   │   ├── plan
 │   │   └── speech
-│   ├── layout.tsx
-│   └── page.tsx
+│   ├── layout.tsx # 全局样式
+│   ├── layout.tsx # 全局布局
+│   └── page.tsx # 页面组件
 ├── components
 │   ├── forms
 │   ├── layout
