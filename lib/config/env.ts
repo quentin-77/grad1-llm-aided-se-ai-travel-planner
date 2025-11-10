@@ -13,6 +13,8 @@ const envSchema = z.object({
   ALIBABA_SPEECH_ACCESS_KEY_ID: z.string().optional(),
   ALIBABA_SPEECH_ACCESS_KEY_SECRET: z.string().optional(),
   ALIBABA_SPEECH_REGION: z.string().optional(),
+  // Aliyun FileTrans app key (NLS)
+  ALIBABA_NLS_APP_KEY: z.string().optional(),
   AMAP_WEB_KEY: z.string().optional(),
   NEXT_PUBLIC_AMAP_WEB_KEY: z.string().optional(),
 });
@@ -30,6 +32,7 @@ const envResult = envSchema.safeParse({
   ALIBABA_SPEECH_ACCESS_KEY_ID: process.env.ALIBABA_SPEECH_ACCESS_KEY_ID,
   ALIBABA_SPEECH_ACCESS_KEY_SECRET: process.env.ALIBABA_SPEECH_ACCESS_KEY_SECRET,
   ALIBABA_SPEECH_REGION: process.env.ALIBABA_SPEECH_REGION,
+  ALIBABA_NLS_APP_KEY: process.env.ALIBABA_NLS_APP_KEY,
   AMAP_WEB_KEY: process.env.AMAP_WEB_KEY,
   NEXT_PUBLIC_AMAP_WEB_KEY: process.env.NEXT_PUBLIC_AMAP_WEB_KEY,
 });
@@ -56,6 +59,7 @@ export const env = envResult.success
       ALIBABA_SPEECH_ACCESS_KEY_ID: undefined,
       ALIBABA_SPEECH_ACCESS_KEY_SECRET: undefined,
       ALIBABA_SPEECH_REGION: undefined,
+      ALIBABA_NLS_APP_KEY: undefined,
       AMAP_WEB_KEY: undefined,
       NEXT_PUBLIC_AMAP_WEB_KEY: undefined,
     } satisfies z.infer<typeof envSchema>);

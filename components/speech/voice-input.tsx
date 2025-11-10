@@ -19,9 +19,11 @@ export function VoiceInput({
   onAudioData,
   transcript: externalTranscript,
 }: VoiceInputProps) {
+  // 使用自定义 Hook 进行语音识别
   const { isSupported, isListening, transcript, error, start, stop } = useSpeechRecognition({
     lang: "zh-CN",
-    interimResults: true,
+    interimResults: false,
+    continuous: false,
   });
   const [internalTranscript, setInternalTranscript] = useState<string>("");
   const [isRecording, setIsRecording] = useState(false);
@@ -62,10 +64,12 @@ export function VoiceInput({
     return displayTranscript || "点击麦克风开始实时语音识别，结果会自动填充表单。";
   }, [displayTranscript, isListening, isSupported]);
 
+  // 调用函数入口
   const handleToggle = () => {
     if (isProcessing) return;
     // 优先尝试浏览器识别；若不支持或已出现 network 错误，则启用录音回退
     const preferRecording = !isSupported || error === "network";
+    // 使用阿里云录音识别流程
     if (preferRecording) {
       if (isRecording) {
         stopRecording();
@@ -75,6 +79,7 @@ export function VoiceInput({
       return;
     }
 
+    // 浏览器识别流程
     if (isListening) {
       stop();
     } else {

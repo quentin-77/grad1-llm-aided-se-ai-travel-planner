@@ -50,7 +50,8 @@ declare global {
 
 interface UseSpeechRecognitionOptions {
   lang?: string;
-  interimResults?: boolean;
+  interimResults?: boolean; // 是否需要中间结果
+  continuous?: boolean; // 是否连续识别
 }
 
 interface UseSpeechRecognitionResult {
@@ -64,7 +65,8 @@ interface UseSpeechRecognitionResult {
 
 export function useSpeechRecognition({
   lang = "zh-CN",
-  interimResults = true,
+  interimResults = false,
+  continuous = false,
 }: UseSpeechRecognitionOptions = {}): UseSpeechRecognitionResult {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [isSupported, setIsSupported] = useState(false);
@@ -74,6 +76,7 @@ export function useSpeechRecognition({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    // 语音识别功能依赖浏览器的 Web Speech API
     const RecognitionCtor =
       window.SpeechRecognition ||
       window.webkitSpeechRecognition ||
@@ -86,34 +89,51 @@ export function useSpeechRecognition({
 
     const recognition = new RecognitionCtor();
     recognition.lang = lang;
-    recognition.continuous = false;
+    recognition.continuous = continuous;
     recognition.interimResults = interimResults;
 
     recognition.onstart = () => {
-      console.log("[SR] start");
       setIsListening(true);
       setError(null);
     };
 
     recognition.onend = () => {
-      console.log("[SR] end");
       setIsListening(false);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      setError(event.error ?? "speech-recognition-error");
+      const code = event?.error;
+      // 忽略无语音/用户中断等非致命错误，避免控制台噪音
+      if (!code || code === "no-speech" || code === "aborted") {
+        setIsListening(false);
+        setError(null);
+        return;
+      }
+      const friendly = code === "network"
+        ? "network（网络不可用或服务不可达）"
+        : code;
+      setError(friendly || "speech-recognition-error");
       setIsListening(false);
-      console.error("[SR] error", event);
     };
 
     recognition.onresult = (event: SpeechRecognitionResultEvent) => {
-      const results = Array.from(event.results || []);
-      console.log("[SR] result", results);
-      const text = results
-        .map((item) => item?.[0]?.transcript ?? "")
-        .filter(Boolean)
-        .join("");
-      setTranscript(text.trim());
+      if (!recognition.interimResults) {
+        // 仅取一次性的最终结果，按同学示例取第一条/最后条的第一个候选
+        const total = event?.results?.length || 0;
+        if (!total) return;
+        const idx = Math.max(0, total - 1);
+        const res: any = (event.results as any)[idx];
+        const best: any = res && res[0];
+        const text = (best?.transcript || "").toString();
+        setTranscript(text.trim());
+      } else {
+        const results = Array.from(event.results || []);
+        const text = results
+          .map((item) => (item as any)?.[0]?.transcript ?? "")
+          .filter(Boolean)
+          .join("");
+        setTranscript(text.trim());
+      }
     };
 
     recognitionRef.current = recognition;
@@ -127,7 +147,7 @@ export function useSpeechRecognition({
       recognition.stop();
       recognitionRef.current = null;
     };
-  }, [lang, interimResults]);
+  }, [lang, interimResults, continuous]);
 
   const start = useCallback(() => {
     if (!recognitionRef.current || isListening) return;

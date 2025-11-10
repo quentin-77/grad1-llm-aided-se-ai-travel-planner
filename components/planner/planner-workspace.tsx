@@ -8,7 +8,7 @@ import { VoiceInput } from "@/components/speech/voice-input";
 import type { TripIntentFormValues } from "@/components/forms/trip-intent-form";
 import type { TripIntentPayload } from "@/lib/types/plan";
 import type { TripPlanResponse, TripIntentParseResponse } from "@/lib/types/api";
-import { convertBlobTo16kMonoWav } from "@/lib/utils/audio";
+// 文件链接方式调用阿里云 FileTrans，无需本地转码
 
 export function PlannerWorkspace() {
   const [voiceTranscript, setVoiceTranscript] = useState<string | null>(null);
@@ -99,34 +99,19 @@ export function PlannerWorkspace() {
 
   const planData = planMutation.data?.plan;
 
-  const handleAudioData = async (blob: Blob) => {
+  const handleAudioData = async (_blob: Blob) => {
     setIsSpeechProcessing(true);
     try {
-      let payloadBlob = blob;
-      let contentType = blob.type || "";
-
-      if (!isSupportedPcmOrWav(contentType)) {
-        try {
-          payloadBlob = await convertBlobTo16kMonoWav(blob);
-          contentType = "audio/wav";
-        } catch (conversionError) {
-          console.error("[PlannerWorkspace] 音频转换失败", conversionError);
-          setVoiceTranscript("录音格式转换失败，请更换浏览器或允许麦克风后重试。");
-          return;
-        }
+      const fileLink = window.prompt("Web Speech 不可用，输入可访问的音频URL以使用阿里云识别：", "https://...");
+      if (!fileLink) {
+        setVoiceTranscript("已取消上传，未提供音频链接。");
+        return;
       }
 
-      if (!contentType) {
-        contentType = payloadBlob.type || "audio/wav";
-      }
-
-      const response = await fetch("/api/speech", {
+      const response = await fetch("/api/speech/file", {
         method: "POST",
-        headers: {
-          "Content-Type": contentType,
-          "x-speech-language": "zh-CN",
-        },
-        body: payloadBlob,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileLink }),
       });
 
       if (!response.ok) {
@@ -141,16 +126,11 @@ export function PlannerWorkspace() {
       setIntentMessage(null);
     } catch (error) {
       console.error("[PlannerWorkspace] 语音识别异常", error);
-      setVoiceTranscript("语音识别暂不可用，请稍后再试。依然可以使用文字表单提交。");
+      setVoiceTranscript("阿里云识别暂不可用，请稍后再试。依然可以使用文字表单提交。");
     } finally {
       setIsSpeechProcessing(false);
     }
   };
-
-  function isSupportedPcmOrWav(mime: string) {
-    const normalized = mime.toLowerCase();
-    return normalized.includes("wav") || normalized.includes("pcm");
-  }
 
   const insights = useMemo(() => {
     if (!planData) return [];
