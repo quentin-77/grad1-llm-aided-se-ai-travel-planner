@@ -5,6 +5,7 @@ import { CalendarDays, MapPin, PiggyBank, MapPinned } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { BudgetSummary } from "@/components/plan/budget-summary";
 import { MapView } from "@/components/plan/map-view";
+import { useMemo, useState } from "react";
 
 interface PlanPreviewProps {
   plan?: TripPlan;
@@ -19,6 +20,16 @@ export function PlanPreview({ plan }: PlanPreviewProps) {
       </div>
     );
   }
+
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+  const toggleDay = (date: string) => {
+    setExpandedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date);
+      else next.add(date);
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -82,25 +93,40 @@ export function PlanPreview({ plan }: PlanPreviewProps) {
               </h4>
             </header>
             <ul className="space-y-2 text-sm text-neutral-600 dark:text-neutral-300">
-              {day.items.slice(0, 4).map((item) => (
-                <li key={`${day.date}-${item.title}`}>
-                  <span className="font-medium">{item.title}</span>
-                  {item.location?.name ? (
-                    <span className="ml-1 text-neutral-500">
-                      · {item.location.name}
-                    </span>
-                  ) : null}
-                  {item.startTime && item.endTime ? (
-                    <span className="ml-1 text-xs text-neutral-400">
-                      {item.startTime} - {item.endTime}
+              {(expandedDays.has(day.date) ? day.items : day.items.slice(0, 4)).map((item) => (
+                <li key={`${day.date}-${item.title}`} className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="font-medium">{item.title}</span>
+                    {item.location?.name ? (
+                      <span className="ml-1 text-neutral-500">
+                        · {item.location.name}
+                      </span>
+                    ) : null}
+                    {item.startTime && item.endTime ? (
+                      <span className="ml-1 text-xs text-neutral-400">
+                        {item.startTime} - {item.endTime}
+                      </span>
+                    ) : null}
+                  </div>
+                  {typeof item.estimatedCost === "number" ? (
+                    <span className="shrink-0 rounded-md bg-neutral-100 px-2 py-0.5 text-xs text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                      约 {item.estimatedCost.toLocaleString()} {plan.budget.currency}
                     </span>
                   ) : null}
                 </li>
               ))}
-              {day.items.length > 4 ? (
-                <li className="text-xs text-neutral-400">…还有更多精彩安排</li>
-              ) : null}
             </ul>
+            {day.items.length > 4 ? (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => toggleDay(day.date)}
+                  className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  {expandedDays.has(day.date) ? "收起" : `展开全部（共 ${day.items.length} 项）`}
+                </button>
+              </div>
+            ) : null}
           </Card>
         ))}
       </div>

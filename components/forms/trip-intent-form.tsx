@@ -37,7 +37,6 @@ const THEME_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "adventure", label: "冒险" },
   { value: "relaxation", label: "度假" },
   { value: "shopping", label: "购物" },
-  { value: "nightlife", label: "夜生活" },
 ];
 
 interface TripIntentFormProps {

@@ -37,6 +37,7 @@ export function MapView({ plan }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [dayIndex, setDayIndex] = useState(0);
 
   const mapKey = process.env.NEXT_PUBLIC_AMAP_WEB_KEY;
 
@@ -45,31 +46,49 @@ export function MapView({ plan }: MapViewProps) {
     longitude: number;
   };
 
-  // 基于 Day 1 的地点名称，动态调用后端进行地理编码
-  const day1PlaceNames = useMemo(() => {
-    const first = plan.itinerary[0];
-    if (!first) return [] as string[];
-    const names = first.items
+  // 选择的某一天的地点名称，动态调用后端进行地理编码
+  const selectedDayPlaceNames = useMemo(() => {
+    const day = plan.itinerary[dayIndex];
+    if (!day) return [] as string[];
+    const names = day.items
       .map((it) => it.location?.name?.trim())
       .filter((v): v is string => Boolean(v));
-    // 去重，避免重复请求
     return Array.from(new Set(names));
-  }, [plan]);
+  }, [plan, dayIndex]);
 
   const [points, setPoints] = useState<LocationPoint[]>([]);
   const [polylines, setPolylines] = useState<Array<Array<{ longitude: number; latitude: number }>>>([]);
+  const geocodeCacheRef = useRef<Map<string, { longitude: number; latitude: number; formattedAddress?: string }>>(
+    new Map()
+  );
+
+  // 加载本地缓存（首次）
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("amap_geocode_cache_v1");
+      if (raw) {
+        const entries = JSON.parse(raw) as Array<[
+          string,
+          { longitude: number; latitude: number; formattedAddress?: string }
+        ]>;
+        geocodeCacheRef.current = new Map(entries);
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
 
   const derivedError = useMemo(() => {
     if (!mapKey) {
       return "未配置高德地图密钥，暂无法展示地图。";
     }
-    if (!day1PlaceNames.length) {
+    if (!selectedDayPlaceNames.length) {
       return "当前行程缺少地点名称，无法展示地图。";
     }
     return null;
-  }, [mapKey, day1PlaceNames]);
+  }, [mapKey, selectedDayPlaceNames]);
 
-  // 1) 地理编码：将 Day 1 地点名称转换为经纬度
+  // 1) 地理编码：将选定日期的地点名称转换为经纬度（带本地缓存）
   useEffect(() => {
     if (derivedError) return;
     let aborted = false;
@@ -77,27 +96,50 @@ export function MapView({ plan }: MapViewProps) {
       try {
         setLoading(true);
         setLoadError(null);
-        const res = await fetch("/api/map-geocode", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            places: day1PlaceNames.map((name) => ({ name, city: plan.destination })),
-          }),
-        });
-        if (!res.ok) throw new Error(`geocode failed: ${res.status}`);
-        const data = (await res.json()) as {
-          results: Array<{ name: string; longitude: number; latitude: number; formattedAddress?: string }>
-        };
-        if (aborted) return;
+        // 使用缓存，先找出需要请求的项目
+        const cacheKey = (name: string, city?: string) => `${city ?? ""}::${name}`;
+        const cache = geocodeCacheRef.current;
+        const toQuery = selectedDayPlaceNames.filter(
+          (name) => !cache.has(cacheKey(name, plan.destination))
+        );
 
-        const nameToPoint = new Map<string, LocationPoint>();
-        for (const r of data.results ?? []) {
-          nameToPoint.set(r.name, { name: r.name, latitude: r.latitude, longitude: r.longitude });
+        if (toQuery.length) {
+          const res = await fetch("/api/map-geocode", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              places: toQuery.map((name) => ({ name, city: plan.destination })),
+            }),
+          });
+          if (!res.ok) throw new Error(`geocode failed: ${res.status}`);
+          const data = (await res.json()) as {
+            results: Array<{ name: string; longitude: number; latitude: number; formattedAddress?: string }>
+          };
+          for (const r of data.results ?? []) {
+            cache.set(cacheKey(r.name, plan.destination), {
+              longitude: r.longitude,
+              latitude: r.latitude,
+              formattedAddress: r.formattedAddress,
+            });
+          }
+          try {
+            localStorage.setItem(
+              "amap_geocode_cache_v1",
+              JSON.stringify(Array.from(cache.entries()))
+            );
+          } catch {
+            // ignore storage errors
+          }
         }
-        // 保持与原顺序一致
-        const ordered = day1PlaceNames
-          .map((name) => nameToPoint.get(name))
-          .filter((p): p is LocationPoint => Boolean(p));
+
+        // 组装最终点位（按原始顺序）
+        const ordered: LocationPoint[] = [];
+        for (const name of selectedDayPlaceNames) {
+          const rec = cache.get(cacheKey(name, plan.destination));
+          if (rec) {
+            ordered.push({ name, latitude: rec.latitude, longitude: rec.longitude });
+          }
+        }
         setPoints(ordered);
 
         // 触发路径规划（两两相邻）
@@ -136,7 +178,7 @@ export function MapView({ plan }: MapViewProps) {
     return () => {
       aborted = true;
     };
-  }, [derivedError, day1PlaceNames, plan.destination]);
+  }, [derivedError, selectedDayPlaceNames, plan.destination]);
 
   // 2) 地图渲染：根据地理坐标绘制标记与路径
   useEffect(() => {
@@ -215,6 +257,27 @@ export function MapView({ plan }: MapViewProps) {
   return (
     <div className="relative h-80 w-full overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
       <div ref={containerRef} className="h-full w-full" />
+      {/* 顶部左侧：日期选择 */}
+      <div className="pointer-events-auto absolute left-2 top-2 z-10 flex items-center gap-2 rounded-md bg-white/90 p-1 text-xs shadow ring-1 ring-neutral-200 backdrop-blur dark:bg-neutral-900/80 dark:ring-neutral-800">
+        <label className="sr-only" htmlFor="map-day-select">
+          选择日期
+        </label>
+        <select
+          id="map-day-select"
+          className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs dark:border-neutral-700 dark:bg-neutral-900"
+          value={dayIndex}
+          onChange={(e) => {
+            setDayIndex(Number(e.target.value));
+            // 切换日期时清空当前结果，避免旧数据残留
+            setPoints([]);
+            setPolylines([]);
+          }}
+        >
+          {plan.itinerary.map((d, idx) => (
+            <option key={d.date} value={idx}>{`第 ${idx + 1} 天 · ${d.date}`}</option>
+          ))}
+        </select>
+      </div>
       {loading && !errorMessage ? (
         <div className="absolute inset-0 flex items-center justify-center bg-neutral-50 text-sm text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">
           正在加载地图数据…
