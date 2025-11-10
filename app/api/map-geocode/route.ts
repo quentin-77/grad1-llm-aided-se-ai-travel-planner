@@ -23,27 +23,60 @@ export async function POST(request: Request) {
     
     console.log("Geocoding places:", body.places);
     for (const item of body.places) {
-      const url = new URL("https://restapi.amap.com/v3/geocode/geo");
-      url.searchParams.set("address", item.name);
-      if (item.city) url.searchParams.set("city", item.city);
-      url.searchParams.set("output", "JSON");
-      url.searchParams.set("key", key);
+      // 1) 优先尝试地址地理编码
+      const geoUrl = new URL("https://restapi.amap.com/v3/geocode/geo");
+      geoUrl.searchParams.set("address", item.name);
+      if (item.city) geoUrl.searchParams.set("city", item.city);
+      geoUrl.searchParams.set("output", "JSON");
+      geoUrl.searchParams.set("key", key);
 
-      const res = await fetch(url.toString());
-      const data = await res.json();
-      if (data.status !== "1" || !Array.isArray(data.geocodes) || !data.geocodes.length) {
+      const geoRes = await fetch(geoUrl.toString());
+      const geoData = await geoRes.json();
+
+      let found = false;
+      if (geoData.status === "1" && Array.isArray(geoData.geocodes) && geoData.geocodes.length) {
+        const first = geoData.geocodes[0];
+        const [lngStr, latStr] = String(first.location).split(",");
+        const longitude = Number(lngStr);
+        const latitude = Number(latStr);
+        if (Number.isFinite(longitude) && Number.isFinite(latitude)) {
+          results.push({
+            name: item.name,
+            longitude,
+            latitude,
+            formattedAddress: first.formatted_address,
+          });
+          found = true;
+        }
+      }
+
+      if (found) continue;
+
+      // 2) 回退：使用 POI 关键字搜索（更适用于景点/商家）
+      const placeUrl = new URL("https://restapi.amap.com/v3/place/text");
+      placeUrl.searchParams.set("keywords", item.name);
+      if (item.city) placeUrl.searchParams.set("city", item.city);
+      placeUrl.searchParams.set("citylimit", "true");
+      placeUrl.searchParams.set("output", "JSON");
+      placeUrl.searchParams.set("offset", "1"); // 只取第一个最匹配的
+      placeUrl.searchParams.set("page", "1");
+      placeUrl.searchParams.set("key", key);
+
+      const placeRes = await fetch(placeUrl.toString());
+      const placeData = await placeRes.json();
+      if (placeData.status !== "1" || !Array.isArray(placeData.pois) || !placeData.pois.length) {
         continue;
       }
-      const first = data.geocodes[0];
-      const [lngStr, latStr] = String(first.location).split(",");
-      const longitude = Number(lngStr);
-      const latitude = Number(latStr);
-      if (Number.isFinite(longitude) && Number.isFinite(latitude)) {
+      const poi = placeData.pois[0];
+      const [lngStr2, latStr2] = String(poi.location).split(",");
+      const lng2 = Number(lngStr2);
+      const lat2 = Number(latStr2);
+      if (Number.isFinite(lng2) && Number.isFinite(lat2)) {
         results.push({
           name: item.name,
-          longitude,
-          latitude,
-          formattedAddress: first.formatted_address,
+          longitude: lng2,
+          latitude: lat2,
+          formattedAddress: poi.address ?? poi.adname ?? undefined,
         });
       }
     }
