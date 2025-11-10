@@ -1,14 +1,34 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/ui/page-header";
+import { cookies } from "next/headers";
+import { createServerClientInstance } from "@/lib/supabase/server";
+import { PlansList } from "@/components/plan/plans-list";
 
-export default function PlanListPage() {
+export default async function PlanListPage() {
+  const cookieStore = await cookies();
+  const supabase = createServerClientInstance({
+    get: (name) => cookieStore.get(name)?.value,
+    set: (name, value, options) => cookieStore.set({ name, value, ...options }),
+    remove: (name, options) => cookieStore.set({ name, value: "", ...options }),
+  });
+  const { data: { user } } = await supabase.auth.getUser();
+  let plans: Array<{ id: string; plan_name: string; created_at: string }> = [];
+  if (user) {
+    const { data } = await supabase
+      .from("travel_plans")
+      .select("id, plan_name, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    plans = data ?? [];
+  }
+
   return (
     <AppShell
       header={
         <PageHeader
           title="我的行程"
-          description="行程列表即将上线，可从 Supabase 云端同步历史与共享行程。"
+          description="管理你保存的旅行计划，支持云端同步。"
           actions={
             <Link
               href="/planner"
@@ -20,10 +40,7 @@ export default function PlanListPage() {
         />
       }
     >
-      <div className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50 text-center text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-400">
-        <p className="text-sm">这里将展示行程列表、收藏及共享功能。</p>
-        <p className="mt-2 text-xs">完成核心功能开发后，将接入 Supabase 行程库与实时同步。</p>
-      </div>
+      <PlansList initialPlans={plans} />
     </AppShell>
   );
 }

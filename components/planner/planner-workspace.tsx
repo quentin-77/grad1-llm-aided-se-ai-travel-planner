@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { TripIntentForm } from "@/components/forms/trip-intent-form";
 import { PlanPreview } from "@/components/plan/plan-preview";
@@ -8,6 +8,7 @@ import { VoiceInput } from "@/components/speech/voice-input";
 import type { TripIntentFormValues } from "@/components/forms/trip-intent-form";
 import type { TripIntentPayload } from "@/lib/types/plan";
 import type { TripPlanResponse, TripIntentParseResponse } from "@/lib/types/api";
+import type { TripPlan } from "@/lib/types/plan";
 // 文件链接方式调用阿里云 FileTrans，无需本地转码
 
 export function PlannerWorkspace() {
@@ -98,6 +99,32 @@ export function PlannerWorkspace() {
   };
 
   const planData = planMutation.data?.plan;
+
+  // 加载用户偏好以填充表单主题
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/preferences', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const prefs: { themes?: string[] } | null = data.preferences ?? null;
+        if (prefs?.themes?.length) {
+          const mapping: Record<string, string> = {
+            '美食': 'culinary',
+            '亲子': 'family',
+            '文化': 'culture',
+            '自然': 'nature',
+            '冒险': 'adventure',
+            '度假': 'relaxation',
+            '购物': 'shopping',
+            '动漫': 'culture',
+          };
+          const mapped = prefs.themes.map((t) => mapping[t]).filter(Boolean);
+          if (mapped.length) setFormSeed((prev) => (prev ? { ...prev, travelThemes: mapped as TripIntentFormValues['travelThemes'] } : prev));
+        }
+      } catch {}
+    })();
+  }, []);
 
   const handleAudioData = async (_blob: Blob) => {
     setIsSpeechProcessing(true);
@@ -243,7 +270,10 @@ export function PlannerWorkspace() {
             {planError}
           </div>
         ) : (
-          <PlanPreview plan={planData ?? undefined} />
+          <>
+            <PlanPreview plan={planData ?? undefined} />
+            {planData ? <SavePlanWidget planData={planData} /> : null}
+          </>
         )}
       </div>
     </div>
@@ -263,4 +293,63 @@ function convertIntentToFormValues(intent: TripIntentPayload): TripIntentFormVal
     travelThemes: intent.preferences.themes,
     notes: intent.notes ?? "",
   };
+}
+
+function SavePlanWidget({ planData }: { planData: TripPlan }) {
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [ok, setOk] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const save = async () => {
+    setSaving(true);
+    setErr(null);
+    setOk(null);
+    try {
+      const plan_name = name.trim() || `我的行程 ${new Date().toLocaleString()}`;
+      const res = await fetch('/api/travel-plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan_name, plan_data: planData }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await res.json();
+      setOk('保存成功');
+      setName('');
+      // Optional: 显示跳转
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">保存此计划</h3>
+      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">保存到云端以便多设备查看与编辑。</p>
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        <div>
+          <label className="block text-xs text-neutral-500">计划名称</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="例如：东京三日游"
+            className="mt-1 w-64 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-950"
+          />
+        </div>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={save}
+          className="h-9 rounded-md bg-neutral-900 px-3 text-xs font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
+        >
+          {saving ? '保存中…' : '保存此计划'}
+        </button>
+        {ok ? <span className="text-xs text-green-600">{ok}</span> : null}
+        {err ? <span className="text-xs text-red-600">{err}</span> : null}
+      </div>
+      <p className="mt-2 text-xs text-neutral-400">若未登录，点击保存会被引导登录。</p>
+    </div>
+  );
 }

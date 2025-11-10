@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/ui/page-header";
+import { PreferencesForm } from "@/components/settings/preferences-form";
 
 export default function SettingsPage() {
   return (
@@ -25,9 +26,7 @@ export default function SettingsPage() {
           <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
             个性化偏好
           </h3>
-          <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-            后续将支持保存常用旅行人群、预算范围与主题偏好，为行程生成提供默认参数。
-          </p>
+          <PreferencesForm />
         </div>
       </div>
     </AppShell>

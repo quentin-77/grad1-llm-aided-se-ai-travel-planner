@@ -1,5 +1,6 @@
 import { PRIMARY_NAVIGATION } from "@/lib/config/navigation";
 import { SidebarNav } from "@/components/navigation/sidebar-nav";
+import { UserAuth } from "@/components/navigation/user-auth";
 import type { ReactNode } from "react";
 
 interface AppShellProps {
@@ -19,7 +20,7 @@ export function AppShell({ children, header, rightAside }: AppShellProps) {
             </p>
             <h1 className="text-2xl font-semibold">旅策同行 · 智慧出行</h1>
           </div>
-          {rightAside}
+          {rightAside ?? <UserAuth />}
         </div>
       </header>
 

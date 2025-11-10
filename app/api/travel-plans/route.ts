@@ -1,12 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClientInstance } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createServerClientInstance } from '@/lib/supabase/server';
 
-// GET /api/expenses?plan_id=xxx
-export async function GET(request: NextRequest) {
-  const planId = request.nextUrl.searchParams.get('plan_id');
-  if (!planId) return NextResponse.json({ error: '缺少 plan_id' }, { status: 400 });
-
+export async function GET() {
   const cookieStore = await cookies();
   const supabase = createServerClientInstance({
     get: (name) => cookieStore.get(name)?.value,
@@ -17,21 +13,19 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 });
 
   const { data, error } = await supabase
-    .from('expenses')
-    .select('id, title, amount, currency, created_at')
+    .from('travel_plans')
+    .select('id, plan_name, plan_data, created_at')
     .eq('user_id', user.id)
-    .eq('plan_id', planId)
     .order('created_at', { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ expenses: data ?? [] });
+  return NextResponse.json({ plans: data ?? [] });
 }
 
-// POST /api/expenses { plan_id, title, amount, currency? }
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => null) as { plan_id: string; title: string; amount: number; currency?: string } | null;
-  if (!body?.plan_id || !body?.title || typeof body?.amount !== 'number') {
-    return NextResponse.json({ error: '缺少必要字段 plan_id/title/amount' }, { status: 400 });
+  const body = await request.json().catch(() => null) as { plan_name: string; plan_data: unknown } | null;
+  if (!body?.plan_name || !body?.plan_data) {
+    return NextResponse.json({ error: '缺少参数 plan_name / plan_data' }, { status: 400 });
   }
 
   const cookieStore = await cookies();
@@ -44,17 +38,11 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 });
 
   const { data, error } = await supabase
-    .from('expenses')
-    .insert({
-      plan_id: body.plan_id,
-      title: body.title,
-      amount: body.amount,
-      currency: body.currency ?? 'CNY',
-      user_id: user.id,
-    })
-    .select('id, title, amount, currency, created_at')
+    .from('travel_plans')
+    .insert({ plan_name: body.plan_name, plan_data: body.plan_data, user_id: user.id })
+    .select('id, plan_name, created_at')
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ expense: data });
+  return NextResponse.json({ plan: data });
 }

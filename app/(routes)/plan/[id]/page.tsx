@@ -2,12 +2,27 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/ui/page-header";
 import { PlanPreview } from "@/components/plan/plan-preview";
+import { cookies } from "next/headers";
+import { createServerClientInstance } from "@/lib/supabase/server";
+import { ExpensesPanel } from "@/components/plan_expenses/expenses-panel";
+import type { TripPlan } from "@/lib/types/plan";
 
 interface PlanDetailPageProps {
   params: { id: string };
 }
 
-export default function PlanDetailPage({ params }: PlanDetailPageProps) {
+export default async function PlanDetailPage({ params }: PlanDetailPageProps) {
+  const cookieStore = await cookies();
+  const supabase = createServerClientInstance({
+    get: (name) => cookieStore.get(name)?.value,
+    set: (name, value, options) => cookieStore.set({ name, value, ...options }),
+    remove: (name, options) => cookieStore.set({ name, value: "", ...options }),
+  });
+  const { data } = await supabase
+    .from("travel_plans")
+    .select("id, plan_name, plan_data, created_at")
+    .eq("id", params.id)
+    .single();
 
   return (
     <AppShell
@@ -27,13 +42,15 @@ export default function PlanDetailPage({ params }: PlanDetailPageProps) {
       }
     >
       <div className="space-y-6">
-        <div className="rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-600 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-          <p>
-            当前页面用于预览行程 `{params.id}`。接下来会对接 Supabase
-            数据库与通义千问 API，展示详细日程、地理位置与实时预算。
-          </p>
+        <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+          <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">{data?.plan_name ?? '行程详情'}</h3>
+          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">创建于：{data?.created_at ? new Date(data.created_at).toLocaleString() : '-'}</p>
         </div>
-        <PlanPreview />
+        <PlanPreview plan={data?.plan_data as TripPlan} />
+        <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+          <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">费用管理</h3>
+          <ExpensesPanel planId={params.id} />
+        </div>
       </div>
     </AppShell>
   );
