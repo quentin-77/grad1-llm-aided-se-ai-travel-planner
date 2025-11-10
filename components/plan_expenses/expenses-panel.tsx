@@ -48,6 +48,16 @@ export function ExpensesPanel({ planId }: { planId: string }) {
     await load();
   };
 
+  const remove = async (id: string) => {
+    if (!confirm('确认删除这条记录？')) return;
+    const res = await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      alert('删除失败');
+      return;
+    }
+    await load();
+  };
+
   return (
     <div>
       <form onSubmit={add} className="mb-4 flex flex-wrap items-end gap-3">
@@ -82,12 +92,19 @@ export function ExpensesPanel({ planId }: { planId: string }) {
       ) : items.length ? (
         <ul className="divide-y divide-neutral-200 text-sm dark:divide-neutral-800">
           {items.map((e) => (
-            <li key={e.id} className="flex items-center justify-between py-2">
-              <div>
-                <p className="font-medium">{e.title}</p>
+            <li key={e.id} className="flex items-center justify-between gap-3 py-2">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{e.title}</p>
                 <p className="text-xs text-neutral-500">{new Date(e.created_at).toLocaleString()}</p>
               </div>
-              <div className="font-mono">{e.amount} {e.currency}</div>
+              <div className="flex items-center gap-3">
+                <div className="font-mono">{e.amount} {e.currency}</div>
+                <button
+                  type="button"
+                  onClick={() => remove(e.id)}
+                  className="rounded-md border border-neutral-300 px-2 py-1 text-xs text-neutral-700 transition hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-900"
+                >删除</button>
+              </div>
             </li>
           ))}
         </ul>
