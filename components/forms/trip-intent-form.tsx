@@ -121,58 +121,24 @@ export function TripIntentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
-            旅行目的地
-          </label>
-          <input
-            type="text"
-            placeholder="例如：日本东京"
-            {...form.register("destination")}
-            className="mt-2 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900"
-          />
-          {form.formState.errors.destination ? (
-            <p className="mt-1 text-xs text-red-500">
-              {form.formState.errors.destination.message}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+          <div className="md:col-span-2">
             <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
-              出发日期
+              旅行目的地
             </label>
             <input
-              type="date"
-              {...form.register("startDate")}
+              type="text"
+              placeholder="例如：日本东京"
+              {...form.register("destination")}
               className="mt-2 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900"
             />
-            {form.formState.errors.startDate ? (
+            {form.formState.errors.destination ? (
               <p className="mt-1 text-xs text-red-500">
-                {form.formState.errors.startDate.message}
+                {form.formState.errors.destination.message}
               </p>
             ) : null}
           </div>
-          <div>
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
-              返回日期
-            </label>
-            <input
-              type="date"
-              {...form.register("endDate")}
-              className="mt-2 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900"
-            />
-            {form.formState.errors.endDate ? (
-              <p className="mt-1 text-xs text-red-500">
-                {form.formState.errors.endDate.message}
-              </p>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
               成人
@@ -223,7 +189,41 @@ export function TripIntentForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+              出发日期
+            </label>
+            <input
+              type="date"
+              {...form.register("startDate")}
+              className="mt-2 w-full min-w-[10rem] rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900"
+            />
+            {form.formState.errors.startDate ? (
+              <p className="mt-1 text-xs text-red-500">
+                {form.formState.errors.startDate.message}
+              </p>
+            ) : null}
+          </div>
+          <div>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+              返回日期
+            </label>
+            <input
+              type="date"
+              {...form.register("endDate")}
+              className="mt-2 w-full min-w-[10rem] rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900"
+            />
+            {form.formState.errors.endDate ? (
+              <p className="mt-1 text-xs text-red-500">
+                {form.formState.errors.endDate.message}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        {/* 第 3 行：预算金额 + 币种 */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
               预算金额
@@ -246,7 +246,7 @@ export function TripIntentForm({
             </label>
             <select
               {...form.register("currency")}
-              className="mt-2 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900"
+              className="mt-2 w-full min-w-[10rem] rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900"
             >
               <option value="CNY">人民币 (CNY)</option>
               <option value="USD">美元 (USD)</option>

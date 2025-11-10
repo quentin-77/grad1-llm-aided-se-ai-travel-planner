@@ -142,8 +142,8 @@ export function PlannerWorkspace() {
   }, [planData]);
 
   return (
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
-      <div className="space-y-6 xl:col-span-3">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-10">
+      <div className="space-y-6 xl:col-span-6">
         <VoiceInput
           isProcessing={planMutation.isPending || isSpeechProcessing}
           transcript={voiceTranscript ?? undefined}
@@ -200,7 +200,7 @@ export function PlannerWorkspace() {
         />
       </div>
 
-      <div className="space-y-4 xl:col-span-2">
+      <div className="space-y-4 xl:col-span-4">
         <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
           <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
             语音识别结果
@@ -237,7 +237,7 @@ export function PlannerWorkspace() {
         </div>
       </div>
 
-      <div className="xl:col-span-5">
+      <div className="xl:col-span-10">
         {planError ? (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
             {planError}

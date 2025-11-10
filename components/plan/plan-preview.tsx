@@ -81,7 +81,7 @@ export function PlanPreview({ plan }: PlanPreviewProps) {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4">
         {plan.itinerary.map((day) => (
           <Card key={day.date} className="space-y-3">
             <header>
