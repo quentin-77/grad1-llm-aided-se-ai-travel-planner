@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 type Plan = { id: string; plan_name: string; created_at: string };
 
@@ -61,7 +62,7 @@ export function PlansList({ initialPlans }: { initialPlans: Plan[] }) {
       {plans.map((plan) => (
         <li key={plan.id} className="flex items-center justify-between py-3">
           <div>
-            <a className="font-medium hover:underline" href={`/plan/${plan.id}`}>{plan.plan_name}</a>
+            <Link className="font-medium hover:underline" href={`/plan/${plan.id}`}>{plan.plan_name}</Link>
             <p className="text-xs text-neutral-500">{new Date(plan.created_at).toLocaleString()}</p>
           </div>
           <button

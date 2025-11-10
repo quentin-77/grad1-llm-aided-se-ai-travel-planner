@@ -6,12 +6,19 @@ import { cookies } from "next/headers";
 import { createServerClientInstance } from "@/lib/supabase/server";
 import { ExpensesPanel } from "@/components/plan_expenses/expenses-panel";
 import type { TripPlan } from "@/lib/types/plan";
+import { notFound } from "next/navigation";
 
 interface PlanDetailPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function PlanDetailPage({ params }: PlanDetailPageProps) {
+  const { id } = await params;
+  const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id ?? "");
+  if (!id || id === "undefined" || !isUuid) {
+    notFound();
+  }
+
   const cookieStore = await cookies();
   const supabase = createServerClientInstance({
     get: (name) => cookieStore.get(name)?.value,
@@ -21,7 +28,7 @@ export default async function PlanDetailPage({ params }: PlanDetailPageProps) {
   const { data } = await supabase
     .from("travel_plans")
     .select("id, plan_name, plan_data, created_at")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   return (
@@ -49,7 +56,7 @@ export default async function PlanDetailPage({ params }: PlanDetailPageProps) {
         <PlanPreview plan={data?.plan_data as TripPlan} />
         <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
           <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">费用管理</h3>
-          <ExpensesPanel planId={params.id} />
+          <ExpensesPanel planId={id} />
         </div>
       </div>
     </AppShell>

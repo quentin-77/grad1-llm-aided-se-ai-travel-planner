@@ -5,7 +5,8 @@ import { createServerClientInstance } from "@/lib/supabase/server";
 // GET /api/expenses?plan_id=xxx
 export async function GET(request: NextRequest) {
   const planId = request.nextUrl.searchParams.get('plan_id');
-  if (!planId) return NextResponse.json({ error: '缺少 plan_id' }, { status: 400 });
+  const isUuid = !!planId && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(planId);
+  if (!isUuid) return NextResponse.json({ error: '无效的 plan_id' }, { status: 400 });
 
   const cookieStore = await cookies();
   const supabase = createServerClientInstance({
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     .from('expenses')
     .select('id, title, amount, currency, created_at')
     .eq('user_id', user.id)
-    .eq('plan_id', planId)
+    .eq('plan_id', planId as string)
     .order('created_at', { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -30,7 +31,8 @@ export async function GET(request: NextRequest) {
 // POST /api/expenses { plan_id, title, amount, currency? }
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null) as { plan_id: string; title: string; amount: number; currency?: string } | null;
-  if (!body?.plan_id || !body?.title || typeof body?.amount !== 'number') {
+  const isUuid = !!body?.plan_id && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(body.plan_id);
+  if (!isUuid || !body?.title || typeof body?.amount !== 'number') {
     return NextResponse.json({ error: '缺少必要字段 plan_id/title/amount' }, { status: 400 });
   }
 

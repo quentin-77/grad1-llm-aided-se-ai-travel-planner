@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 type Expense = { id: string; title: string; amount: number; currency: string; created_at: string };
 
 export function ExpensesPanel({ planId }: { planId: string }) {
+  const validId = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(planId ?? '');
   const [items, setItems] = useState<Expense[]>([]);
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
@@ -12,6 +13,7 @@ export function ExpensesPanel({ planId }: { planId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    if (!validId) return;
     setLoading(true);
     setError(null);
     try {
@@ -24,14 +26,14 @@ export function ExpensesPanel({ planId }: { planId: string }) {
     } finally {
       setLoading(false);
     }
-  }, [planId]);
+  }, [planId, validId]);
 
   useEffect(() => { void load(); }, [load]);
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
     const amt = Number(amount);
-    if (!title || !Number.isFinite(amt)) return;
+    if (!validId || !title || !Number.isFinite(amt)) return;
     const res = await fetch('/api/expenses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
