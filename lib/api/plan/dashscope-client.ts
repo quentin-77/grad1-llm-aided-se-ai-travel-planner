@@ -12,6 +12,7 @@ export function getDashScopeClient() {
     client = new OpenAI({
       apiKey: env.DASH_SCOPE_API_KEY,
       baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      // baseURL: "http://35.220.164.252:3888/v1",
     });
   }
 

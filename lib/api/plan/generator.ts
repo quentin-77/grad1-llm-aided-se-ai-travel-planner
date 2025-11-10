@@ -29,6 +29,7 @@ export async function generateTripPlanFromIntent(intent: TripIntentPayload) {
     });
 
     const messageContent = completion.choices[0]?.message?.content;
+    console.log("[generateTripPlanFromIntent] DashScope response:", messageContent);
 
     if (!messageContent) {
       throw new Error("DashScope 返回内容为空");
