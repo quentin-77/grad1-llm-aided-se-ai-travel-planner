@@ -159,7 +159,56 @@ ai-travel-planner
 ├── supabase
 │   └── schema.sql # 数据库表结构与 RLS 策略
 └── README.md
+
 ```
+## Docker 运行
+
+你可以直接使用 Docker 在本地或服务器运行本项目。
+
+构建镜像（本地）
+
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
+  --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
+  -t voyageai/app:local .
+docker run --rm -p 3000:3000 \
+  -e NEXT_PUBLIC_SUPABASE_URL=... \
+  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=... \
+  -e DASH_SCOPE_API_KEY=... \
+  voyageai/app:local
+```
+
+或使用 compose（推荐）：
+
+```bash
+docker compose up --build
+```
+
+环境变量说明见前文“环境变量”章节。未配置 AI/Supabase 也可启动（降级展示示例行程；无云端存储）。
+
+### 预构建镜像（可选）
+
+本仓库提供 GitHub Actions 工作流，自动构建并推送到阿里云容器镜像服务（ACR）。
+
+1) 在仓库 Settings → Secrets and variables → Actions 配置以下 Secrets：
+- `ACR_REGISTRY`：如 `registry.cn-hangzhou.aliyuncs.com`
+- `ACR_NAMESPACE`：你的 ACR 命名空间，例如 `voyageai`
+- `IMAGE_NAME`：镜像名（可选，默认 `voyageai`）
+- `ACR_USERNAME` / `ACR_PASSWORD`：ACR 登录凭证
+
+2) 推送到 `main` 或手动触发工作流后，镜像会发布为：
+```
+<ACR_REGISTRY>/<ACR_NAMESPACE>/<IMAGE_NAME>:latest
+```
+
+运行：
+
+```bash
+docker pull <ACR_REGISTRY>/<ACR_NAMESPACE>/<IMAGE_NAME>:latest
+docker run --rm -p 3000:3000 <ACR_REGISTRY>/<ACR_NAMESPACE>/<IMAGE_NAME>:latest
+```
+
 
 ## 使用说明（Supabase 相关）
 

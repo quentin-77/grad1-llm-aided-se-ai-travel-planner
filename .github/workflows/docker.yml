@@ -1,0 +1,60 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch: {}
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Aliyun ACR
+        if: ${{ secrets.ACR_REGISTRY && secrets.ACR_USERNAME && secrets.ACR_PASSWORD }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ secrets.ACR_REGISTRY && secrets.ACR_USERNAME && secrets.ACR_PASSWORD }}
+          tags: |
+            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ secrets.IMAGE_NAME || 'voyageai' }}:${{ github.sha }}
+            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ secrets.IMAGE_NAME || 'voyageai' }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+          # ----------------------------------------------------
+          # ▼▼▼ 关键修改：添加了这里 ▼▼▼
+          # ----------------------------------------------------
+          # 将 GitHub Secrets 传递给 Dockerfile 中的 ARG
+          # 这会修复 NEXT_PUBLIC_ 变量在浏览器中“未定义”的问题
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_AMAP_WEB_KEY=${{ secrets.NEXT_PUBLIC_AMAP_WEB_KEY }}
+          # ----------------------------------------------------
+          # ▲▲▲ 关键修改：添加了这里 ▲▲▲
+          # ----------------------------------------------------
+
+      - name: Print image reference
+        run: |
+          echo "Pushed: ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ secrets.IMAGE_NAME || 'voyageai' }}:${{ github.sha }}"

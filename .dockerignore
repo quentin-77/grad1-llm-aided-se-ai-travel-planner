@@ -1,0 +1,18 @@
+# Dependencies
+node_modules
+
+# Builds and caches
+.next
+out
+*.log
+
+# VCS
+.git
+.gitignore
+
+# Local env
+.env*
+
+# Misc
+.vscode
+.DS_Store

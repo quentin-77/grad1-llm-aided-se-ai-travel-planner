@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 
 export function UserAuth() {
   const router = useRouter();
@@ -10,6 +10,10 @@ export function UserAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      setLoading(false);
+      return;
+    }
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? null);
@@ -29,9 +33,15 @@ export function UserAuth() {
   if (!email) {
     return (
       <div className="flex items-center gap-2">
-        <a href="/login" className="text-sm text-neutral-600 underline dark:text-neutral-300">登录</a>
+        {isSupabaseConfigured() ? (
+          <a href="/login" className="text-sm text-neutral-600 underline dark:text-neutral-300">登录</a>
+        ) : (
+          <span className="text-xs text-neutral-400">账户系统未配置</span>
+        )}
         <span className="text-neutral-300">/</span>
-        <a href="/signup" className="text-sm text-neutral-600 underline dark:text-neutral-300">注册</a>
+        {isSupabaseConfigured() ? (
+          <a href="/signup" className="text-sm text-neutral-600 underline dark:text-neutral-300">注册</a>
+        ) : null}
       </div>
     );
   }
@@ -49,4 +59,3 @@ export function UserAuth() {
     </div>
   );
 }
-
