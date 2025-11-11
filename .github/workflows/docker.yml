@@ -9,52 +9,61 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
+      contents: read # 允许 Checkout
+    env:
+      ACR_REGISTRY: ${{ secrets.ACR_REGISTRY }}
+      ACR_NAMESPACE: ${{ secrets.ACR_NAMESPACE }}
+      IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
+      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_AMAP_WEB_KEY: ${{ secrets.NEXT_PUBLIC_AMAP_WEB_KEY }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Aliyun ACR
-        if: ${{ secrets.ACR_REGISTRY && secrets.ACR_USERNAME && secrets.ACR_PASSWORD }}
+        # 仅在所有 ACR 密钥都存在时才运行
+        if: ${{ env.ACR_REGISTRY != '' && env.ACR_USERNAME != '' && env.ACR_PASSWORD != '' }}
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.ACR_REGISTRY }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+          registry: ${{ env.ACR_REGISTRY }}
+          username: ${{ env.ACR_USERNAME }}
+          password: ${{ env.ACR_PASSWORD }}
 
       - name: Build and Push
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: ${{ secrets.ACR_REGISTRY && secrets.ACR_USERNAME && secrets.ACR_PASSWORD }}
+          # 仅在所有 ACR 密钥都存在时才尝试推送
+          push: ${{ env.ACR_REGISTRY != '' && env.ACR_USERNAME != '' && env.ACR_PASSWORD != '' }}
+          
+          # 标签：一个唯一的 (SHA) 标签和一个 'latest' 标签
           tags: |
-            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ secrets.IMAGE_NAME || 'voyageai' }}:${{ github.sha }}
-            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ secrets.IMAGE_NAME || 'voyageai' }}:latest
+            ${{ env.ACR_REGISTRY != '' && env.ACR_NAMESPACE != '' && (env.IMAGE_NAME != '' || 'voyageai')
+                && format('{0}/{1}/{2}:{3}', env.ACR_REGISTRY, env.ACR_NAMESPACE, env.IMAGE_NAME || 'voyageai', github.sha)
+                || format('voyageai/local:{0}', github.sha) }}
+            ${{ env.ACR_REGISTRY != '' && env.ACR_NAMESPACE != '' && (env.IMAGE_NAME != '' || 'voyageai')
+                && format('{0}/{1}/{2}:latest', env.ACR_REGISTRY, env.ACR_NAMESPACE, env.IMAGE_NAME || 'voyageai')
+                || 'voyageai/local:latest' }}
+            
+          # 缓存
           cache-from: type=gha
           cache-to: type=gha,mode=max
           
-          # ----------------------------------------------------
-          # ▼▼▼ 关键修改：添加了这里 ▼▼▼
-          # ----------------------------------------------------
-          # 将 GitHub Secrets 传递给 Dockerfile 中的 ARG
-          # 这会修复 NEXT_PUBLIC_ 变量在浏览器中“未定义”的问题
+          # 关键修复：在构建时传入 NEXT_PUBLIC_ 变量
           build-args: |
-            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-            NEXT_PUBLIC_AMAP_WEB_KEY=${{ secrets.NEXT_PUBLIC_AMAP_WEB_KEY }}
-          # ----------------------------------------------------
-          # ▲▲▲ 关键修改：添加了这里 ▲▲▲
-          # ----------------------------------------------------
+            NEXT_PUBLIC_SUPABASE_URL=${{ env.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_AMAP_WEB_KEY=${{ env.NEXT_PUBLIC_AMAP_WEB_KEY }}
 
       - name: Print image reference
         run: |
-          echo "Pushed: ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ secrets.IMAGE_NAME || 'voyageai' }}:${{ github.sha }}"
+          echo "Pushed: ${{ env.ACR_REGISTRY != '' && env.ACR_NAMESPACE != '' && (env.IMAGE_NAME != '' || 'voyageai')
+              && format('{0}/{1}/{2}:{3}', env.ACR_REGISTRY, env.ACR_NAMESPACE, env.IMAGE_NAME || 'voyageai', github.sha)
+              || format('voyageai/local:{0}', github.sha) }}"
