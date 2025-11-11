@@ -3,11 +3,10 @@ import { AppProviders } from "@/components/providers/app-providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "旅策同行 · AI 智能旅行助理",
-  description:
-    "通过语音与 AI 智能生成行程、预算与地图，打造一站式的旅行规划体验。",
+  title: "VoyageAI · AI 旅航",
+  description: "AI 规划，超乎所想。Travel That Understands You.",
   keywords: [
-    "AI Travel Planner",
+    "VoyageAI",
     "智能行程规划",
     "语音输入",
     "预算管理",

@@ -16,9 +16,9 @@ export function AppShell({ children, header, rightAside }: AppShellProps) {
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
           <div>
             <p className="text-xs uppercase tracking-wide text-neutral-500">
-              AI Travel Planner
+              AI 规划，超乎所想
             </p>
-            <h1 className="text-2xl font-semibold">旅策同行 · 智慧出行</h1>
+            <h1 className="text-2xl font-semibold">VOYAGEAI · AI 旅航</h1>
           </div>
           {rightAside ?? <UserAuth />}
         </div>

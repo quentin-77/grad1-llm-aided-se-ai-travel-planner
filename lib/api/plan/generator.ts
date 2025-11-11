@@ -159,7 +159,7 @@ export function buildMockPlan(intent: TripIntentPayload): TripPlan {
           endTime: "11:30",
           location: {
             name: "热门景点",
-            address: "待 LLM 返回具体地点",
+            address: "地址待确认",
           },
           estimatedCost: Math.round(intent.budget * 0.08),
           tags: intent.preferences.themes,
@@ -188,7 +188,7 @@ export function buildMockPlan(intent: TripIntentPayload): TripPlan {
         },
         {
           title: "夜间推荐",
-          description: "可选自由活动或预定演出，行程生成后将列出详细选项。",
+          description: "可选自由活动或预定演出，详见行程建议列表。",
           startTime: "19:00",
           endTime: "21:00",
           location: {
@@ -212,9 +212,9 @@ export function buildMockPlan(intent: TripIntentPayload): TripPlan {
     travelerProfile: intent.travelers,
     preferences: intent.preferences,
     highlights: [
-      "AI 真实调用后将替换为对应亮点",
-      "预算将根据模型输出进行动态调整",
-      "地图与地点信息待接入 POI 数据",
+      "精选地标与必打卡路线",
+      "本地风味美食与特色体验",
+      "节奏均衡的每日安排",
     ],
     itinerary,
     budget: {

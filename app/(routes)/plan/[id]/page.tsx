@@ -36,7 +36,7 @@ export default async function PlanDetailPage({ params }: PlanDetailPageProps) {
       header={
         <PageHeader
           title="行程详情"
-          description="未来将在此展示 AI 生成的完整行程、地图路线与预算跟踪。"
+          description="查看 AI 生成的行程、地图与预算概览。"
           actions={
             <Link
               href="/planner"

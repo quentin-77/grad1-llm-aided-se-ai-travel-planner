@@ -256,7 +256,7 @@ export function PlannerWorkspace() {
               ? voiceTranscript
               : isSpeechProcessing
                 ? "正在识别语音…"
-                : "语音识别结果将展示在这里，后续可自动填充表单。"}
+                : "语音识别结果会显示在这里，并可自动填充表单。"}
           </p>
         </div>
 
@@ -271,14 +271,10 @@ export function PlannerWorkspace() {
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-neutral-500">
-              提交旅行需求后，将生成行程摘要、预算与推荐亮点。
-            </p>
+            <p className="mt-3 text-sm text-neutral-500">提交旅行需求后会生成行程摘要、预算与推荐亮点。</p>
           )}
           {planProvider ? (
-            <p className="mt-3 text-xs text-neutral-400">
-              数据来源：{planProvider === "dashscope" ? "通义千问（DashScope）" : "示例占位"}
-            </p>
+            <p className="mt-3 text-xs text-neutral-400">数据来源：{planProvider === "dashscope" ? "通义千问（DashScope）" : "示例数据"}</p>
           ) : null}
         </div>
       </div>
