@@ -9,7 +9,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     permissions:
-      contents: read # 允许 Checkout
+      contents: read
     env:
       ACR_REGISTRY: ${{ secrets.ACR_REGISTRY }}
       ACR_NAMESPACE: ${{ secrets.ACR_NAMESPACE }}
@@ -28,7 +28,6 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Aliyun ACR
-        # 仅在所有 ACR 密钥都存在时才运行
         if: ${{ env.ACR_REGISTRY != '' && env.ACR_USERNAME != '' && env.ACR_PASSWORD != '' }}
         uses: docker/login-action@v3
         with:
@@ -36,65 +35,20 @@ jobs:
           username: ${{ env.ACR_USERNAME }}
           password: ${{ env.ACR_PASSWORD }}
 
-      - name: Build and Pushjobs:
-  docker:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write # 提醒：如前所述，推送ACR时可以移除这行
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # ----------------------------------------------------
-      # ▼▼▼ 在这里添加您的测试步骤 ▼▼▼
-      # ----------------------------------------------------
-      - name: 🧪 1. 调试 - 检查 ACR 密钥
-        if: ${{ secrets.ACR_REGISTRY != '' && secrets.ACR_USERNAME != '' && secrets.ACR_PASSWORD != '' }}
-        run: echo "✅ [SUCCESS] ACR 相关的3个密钥都已成功读取。"
-
-      - name: 🧪 2. 调试 - 检查 Supabase 密钥
-        if: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL != '' && secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY != '' }}
-        run: echo "✅ [SUCCESS] Supabase 相关的2个密钥都已成功读取。"
-
-      - name: 🧪 3. 调试 - 检查高德地图密钥
-        if: ${{ secrets.NEXT_PUBLIC_AMAP_WEB_KEY != '' }}
-        run: echo "✅ [SUCCESS] 高德地图密钥已成功读取。"
-
-      - name: 🚨 4. 调试 - 检查 ACR 密钥 (失败时)
-        if: ${{ secrets.ACR_REGISTRY == '' || secrets.ACR_USERNAME == '' || secrets.ACR_PASSWORD == '' }}
-        run: echo "❌ [FAILED] ACR 相关的密钥 (REGISTRY, USERNAME, or PASSWORD) 未能读取。"
-
-      - name: 🚨 5. 调试 - 检查 Supabase 密钥 (失败时)
-        if: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL == '' || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY == '' }}
-        run: echo "❌ [FAILED] Supabase 相关的密钥未能读取。"
-      # ----------------------------------------------------
-      # ▲▲▲ 测试步骤结束 ▲▲▲
-      # ----------------------------------------------------
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        # ... 您的其余文件 ...
+      - name: Build and Push
         uses: docker/build-push-action@v6
         with:
           context: .
-          # 仅在所有 ACR 密钥都存在时才尝试推送
           push: ${{ env.ACR_REGISTRY != '' && env.ACR_USERNAME != '' && env.ACR_PASSWORD != '' }}
-          
-          # 标签：一个唯一的 (SHA) 标签和一个 'latest' 标签
           tags: |
-            ${{ env.ACR_REGISTRY != '' && env.ACR_NAMESPACE != '' && (env.IMAGE_NAME != '' || 'voyageai')
-                && format('{0}/{1}/{2}:{3}', env.ACR_REGISTRY, env.ACR_NAMESPACE, env.IMAGE_NAME || 'voyageai', github.sha)
+            ${{ env.ACR_REGISTRY && env.ACR_NAMESPACE && env.IMAGE_NAME
+                && format('{0}/{1}/{2}:{3}', env.ACR_REGISTRY, env.ACR_NAMESPACE, env.IMAGE_NAME, github.sha)
                 || format('voyageai/local:{0}', github.sha) }}
-            ${{ env.ACR_REGISTRY != '' && env.ACR_NAMESPACE != '' && (env.IMAGE_NAME != '' || 'voyageai')
-                && format('{0}/{1}/{2}:latest', env.ACR_REGISTRY, env.ACR_NAMESPACE, env.IMAGE_NAME || 'voyageai')
+            ${{ env.ACR_REGISTRY && env.ACR_NAMESPACE && env.IMAGE_NAME
+                && format('{0}/{1}/{2}:latest', env.ACR_REGISTRY, env.ACR_NAMESPACE, env.IMAGE_NAME)
                 || 'voyageai/local:latest' }}
-            
-          # 缓存
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          
-          # 关键修复：在构建时传入 NEXT_PUBLIC_ 变量
           build-args: |
             NEXT_PUBLIC_SUPABASE_URL=${{ env.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -102,6 +56,7 @@ jobs:
 
       - name: Print image reference
         run: |
-          echo "Pushed: ${{ env.ACR_REGISTRY != '' && env.ACR_NAMESPACE != '' && (env.IMAGE_NAME != '' || 'voyageai')
-              && format('{0}/{1}/{2}:{3}', env.ACR_REGISTRY, env.ACR_NAMESPACE, env.IMAGE_NAME || 'voyageai', github.sha)
-              || format('voyageai/local:{0}', github.sha) }}"
+          echo "Pushed tags prepared. Latest repo: ${{ env.ACR_REGISTRY && env.ACR_NAMESPACE && env.IMAGE_NAME
+            && format('{0}/{1}/{2}', env.ACR_REGISTRY, env.ACR_NAMESPACE, env.IMAGE_NAME)
+            || 'voyageai/local' }}"
+
