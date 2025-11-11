@@ -15,7 +15,7 @@ export function PlannerWorkspace() {
   const [voiceTranscript, setVoiceTranscript] = useState<string | null>(null);
   const [isSpeechProcessing, setIsSpeechProcessing] = useState(false);
   const [planProvider, setPlanProvider] = useState<TripPlanResponse["provider"]>();
-  const [formSeed, setFormSeed] = useState<TripIntentFormValues | undefined>(undefined);
+  const [formSeed, setFormSeed] = useState<Partial<TripIntentFormValues> | undefined>(undefined);
   const [intentProvider, setIntentProvider] = useState<TripIntentParseResponse["provider"]>();
   const [intentMessage, setIntentMessage] = useState<string | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
@@ -107,8 +107,8 @@ export function PlannerWorkspace() {
         const res = await fetch('/api/preferences', { cache: 'no-store' });
         if (!res.ok) return;
         const data = await res.json();
-        const prefs: { themes?: string[] } | null = data.preferences ?? null;
-        if (prefs?.themes?.length) {
+        const prefs: { themes?: string[]; default_budget?: string; currency?: string } | null = data.preferences ?? null;
+        if (prefs) {
           const mapping: Record<string, string> = {
             '美食': 'culinary',
             '亲子': 'family',
@@ -119,8 +119,27 @@ export function PlannerWorkspace() {
             '购物': 'shopping',
             '动漫': 'culture',
           };
-          const mapped = prefs.themes.map((t) => mapping[t]).filter(Boolean);
-          if (mapped.length) setFormSeed((prev) => (prev ? { ...prev, travelThemes: mapped as TripIntentFormValues['travelThemes'] } : prev));
+          const mapped = (prefs.themes ?? []).map((t) => mapping[t]).filter(Boolean);
+
+          const budgetLevelToNumber = (level?: string): number | undefined => {
+            switch (level) {
+              case '节省':
+                return 5000;
+              case '中等':
+                return 10000;
+              case '宽松':
+                return 20000;
+              default:
+                return undefined;
+            }
+          };
+
+          setFormSeed((prev) => ({
+            ...(prev ?? {}),
+            ...(mapped.length ? { travelThemes: mapped as TripIntentFormValues['travelThemes'] } : {}),
+            ...(prefs.currency ? { currency: prefs.currency } : {}),
+            ...(budgetLevelToNumber(prefs.default_budget) ? { budget: budgetLevelToNumber(prefs.default_budget)! } : {}),
+          }));
         }
       } catch {}
     })();

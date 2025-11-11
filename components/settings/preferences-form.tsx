@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 type Prefs = { themes: string[]; default_budget: string | null; currency: string };
 
-const THEME_OPTIONS = ['美食', '动漫', '自然', '文化', '亲子'];
+const THEME_OPTIONS = ['美食', '亲子', '文化', '自然', '冒险', '度假', '购物'];
 const BUDGETS = ['节省', '中等', '宽松'];
 
 export function PreferencesForm() {
@@ -71,7 +71,7 @@ export function PreferencesForm() {
           </div>
         </div>
         <div>
-          <p className="text-xs text-neutral-500">默认预算</p>
+          <p className="text-xs text-neutral-500">默认预算（影响行程规划表单默认金额）</p>
           <div className="mt-2 flex gap-2">
             {BUDGETS.map((b) => (
               <label key={b} className="flex items-center gap-1 text-xs">
@@ -79,6 +79,20 @@ export function PreferencesForm() {
               </label>
             ))}
           </div>
+        </div>
+        <div>
+          <p className="text-xs text-neutral-500">默认币种</p>
+          <select
+            value={prefs.currency}
+            onChange={(e) => setPrefs((p) => ({ ...p, currency: e.target.value }))}
+            className="mt-2 w-40 rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs dark:border-neutral-700 dark:bg-neutral-950"
+          >
+            <option value="CNY">人民币 (CNY)</option>
+            <option value="USD">美元 (USD)</option>
+            <option value="JPY">日元 (JPY)</option>
+            <option value="EUR">欧元 (EUR)</option>
+            <option value="HKD">港币 (HKD)</option>
+          </select>
         </div>
       </div>
       <div className="mt-3 flex items-center gap-3">
@@ -93,4 +107,3 @@ export function PreferencesForm() {
     </div>
   );
 }
-
