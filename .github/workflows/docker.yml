@@ -36,7 +36,45 @@ jobs:
           username: ${{ env.ACR_USERNAME }}
           password: ${{ env.ACR_PASSWORD }}
 
-      - name: Build and Push
+      - name: Build and Pushjobs:
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # 提醒：如前所述，推送ACR时可以移除这行
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ----------------------------------------------------
+      # ▼▼▼ 在这里添加您的测试步骤 ▼▼▼
+      # ----------------------------------------------------
+      - name: 🧪 1. 调试 - 检查 ACR 密钥
+        if: ${{ secrets.ACR_REGISTRY != '' && secrets.ACR_USERNAME != '' && secrets.ACR_PASSWORD != '' }}
+        run: echo "✅ [SUCCESS] ACR 相关的3个密钥都已成功读取。"
+
+      - name: 🧪 2. 调试 - 检查 Supabase 密钥
+        if: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL != '' && secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY != '' }}
+        run: echo "✅ [SUCCESS] Supabase 相关的2个密钥都已成功读取。"
+
+      - name: 🧪 3. 调试 - 检查高德地图密钥
+        if: ${{ secrets.NEXT_PUBLIC_AMAP_WEB_KEY != '' }}
+        run: echo "✅ [SUCCESS] 高德地图密钥已成功读取。"
+
+      - name: 🚨 4. 调试 - 检查 ACR 密钥 (失败时)
+        if: ${{ secrets.ACR_REGISTRY == '' || secrets.ACR_USERNAME == '' || secrets.ACR_PASSWORD == '' }}
+        run: echo "❌ [FAILED] ACR 相关的密钥 (REGISTRY, USERNAME, or PASSWORD) 未能读取。"
+
+      - name: 🚨 5. 调试 - 检查 Supabase 密钥 (失败时)
+        if: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL == '' || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY == '' }}
+        run: echo "❌ [FAILED] Supabase 相关的密钥未能读取。"
+      # ----------------------------------------------------
+      # ▲▲▲ 测试步骤结束 ▲▲▲
+      # ----------------------------------------------------
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        # ... 您的其余文件 ...
         uses: docker/build-push-action@v6
         with:
           context: .
